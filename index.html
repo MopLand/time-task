@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>URL定时请求</title>
+  <meta name="renderer" content="webkit">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/4.1.1/css/bootstrap.min.css">
+  <script src="//cdn.bootcss.com/vue/2.3.4/vue.min.js"></script>
+  <script src="//public.zhfile.com/js/ray.js"></script>
+</head>
+
+<body>
+  
+	<div class="my-5 mx-5"></div>
+	
+	<div class="container" id="app">
+
+		<blockquote class="blockquote">新增任务</blockquote>
+
+		<div class="card">
+			<div class="card-body">
+
+			<form class="form-signin">
+							
+				<div class="form-group">
+					<label>任务链接</label>
+					<input type="text" class="form-control" placeholder="任务的 URL" required autofocus v-model="task" value="">
+				</div>
+						
+				<div class="form-group">
+					<label>循环时间（1000 = 1秒）</label>
+					<input type="number" class="form-control" placeholder="任务的间隔时间" required v-model="time" value="">
+				</div>
+
+				<div class="form-row">
+					<div class="col">
+						<button class="btn btn-primary btn-block" type="button" v-on:click="append">保存任务</button>
+					</div>
+					<div class="col">
+						<div v-if="Object.keys( list ).length">
+							<button class="btn btn-success btn-block" type="button" v-on:click="start" v-if="!run">开始任务</button>
+							<button class="btn btn-secondary btn-block" type="button" v-on:click="stop" v-if="run">暂停任务</button>
+						</div>
+					</div>
+				</div>
+				
+			</form>
+
+			</div>
+		</div>
+
+		<hr />
+
+		<blockquote class="blockquote">任务列表</blockquote>
+
+		<div class="card mb-3" v-for="item in list">
+			<div class="card-body">
+							
+			<p><label>任务链接</label> {{item.task}}</p>
+					
+			<p><label>循环时间</label> {{item.time / 1000}} 秒，<label>已执行次数</label> {{item.exec}}</p>
+
+			<p>{{item.text}}</p>
+
+			</div>
+		</div>
+
+	</div>
+
+	<script>	
+	var catlog = new Vue({
+		el : '#app',
+		data : {
+			run  : false,
+			task : null,
+			time : null,
+			list : []
+		},
+		methods : {
+
+			append : function(){
+			
+				 if( !R.Validate.URL( this.task ) ){				
+					alert('任务链接必需为 URL');
+					
+				}else if( !R.Validate.Number( this.time ) ){				
+					alert('循环时间必需为数字');
+					
+				}else{				
+					this.access( this.task, this.time );
+					this.task = this.time = null;					
+				}
+				
+			},
+
+			access : function( task, time ){
+
+				var that = this;
+				var indx = that.list.length;
+
+				var fn = function(){
+
+					if( !that.run ) return;
+
+					R.jsonp( task + '?ajax=?', function( data ){
+						that.list[ indx ].text = JSON.stringify( data );
+						that.list[ indx ].exec = that.list[ indx ].exec + 1;
+					} );
+
+					that.list[ indx ].exec ++;
+
+				}
+
+				var id = window.setInterval( fn, time );
+
+				fn();
+
+				that.list.push( { 'task' : task, 'time' : time, 'text' : null, 'exec' : 0, 'id' : id } );
+
+			},
+
+			delete : function( node ){
+
+				window.clearInterval( node['id'] );
+
+				delete that.list[ node ];
+
+			},
+
+			start : function(){
+				this.run = true;
+			},
+			
+			stop : function(){
+				this.run = false;
+			}
+		}
+	});
+	</script>
+	
+</body>
+</html>
