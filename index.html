@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>URL定时请求</title>
+  <title>URL 定时请求</title>
   <meta name="renderer" content="webkit">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/4.1.1/css/bootstrap.min.css">
@@ -12,7 +12,7 @@
 
 <body>
   
-	<div class="my-5 mx-5"></div>
+	<div class="my-3 mx-3"></div>
 	
 	<div class="container" id="app">
 
@@ -57,13 +57,17 @@
 		<div class="card mb-3" v-for="item in list">
 			<div class="card-body">
 							
-			<p><label>任务链接</label> {{item.task}}</p>
+			<p><label>任务链接</label> {{item.task}} <a v-on:click="remove( item )" class="text-danger float-right">[DELETE]</a></p>
 					
-			<p><label>循环时间</label> {{item.time / 1000}} 秒，<label>已执行次数</label> {{item.exec}}</p>
+			<p><label>循环间隔</label> <code>{{item.time / 1000}}</code> 秒，<label>已执行</label> <code>{{item.exec}}</code> 次 {{item.date ? '，最近执行：' + item.date : '' }}</p>
 
-			<p>{{item.text}}</p>
+			<p v-if="item.text" class="text-success">{{item.text}}</p>
 
 			</div>
+		</div>
+		
+		<div class="alert alert-warning" v-if="list.length == 0">
+			暂无任务
 		</div>
 
 	</div>
@@ -106,6 +110,7 @@
 					R.jsonp( task + '?ajax=?', function( data ){
 						that.list[ indx ].text = JSON.stringify( data );
 						that.list[ indx ].exec = that.list[ indx ].exec + 1;
+						that.list[ indx ].date = new Date().toLocaleTimeString();
 					} );
 
 					that.list[ indx ].exec ++;
@@ -116,15 +121,17 @@
 
 				fn();
 
-				that.list.push( { 'task' : task, 'time' : time, 'text' : null, 'exec' : 0, 'id' : id } );
+				that.list.push( { 'indx' : indx, 'task' : task, 'time' : time, 'text' : null, 'date' : null, 'exec' : 0, 'id' : id } );
 
 			},
 
-			delete : function( node ){
+			remove : function( node ){
+			
+				console.log( node );
 
 				window.clearInterval( node['id'] );
-
-				delete that.list[ node ];
+				
+				this.list.splice( node['indx'], 1 );
 
 			},
 
