@@ -53,10 +53,8 @@
 						<button class="btn btn-primary btn-block" type="button" v-on:click="append" v-bind:disabled="!node.url || !node.rest">新增任务</button>
 					</div>
 					<div class="col">
-						<div v-if="Object.keys( list ).length">
-							<button class="btn btn-success btn-block" type="button" v-on:click="start" v-if="!run">开始任务</button>
-							<button class="btn btn-secondary btn-block" type="button" v-on:click="stop" v-if="run">暂停任务</button>
-						</div>
+						<button class="btn btn-success btn-block" type="button" v-on:click="start" v-if="!run" v-bind:disabled="Object.keys( list ).length == 0">开始任务</button>
+						<button class="btn btn-secondary btn-block" type="button" v-on:click="stop" v-if="run">暂停任务</button>
 					</div>
 				</div>
 				
