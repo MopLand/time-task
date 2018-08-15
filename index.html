@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <title>URL 定时请求</title>
-  <meta name="renderer" content="webkit">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/4.1.1/css/bootstrap.min.css">
-  <script src="//cdn.bootcss.com/vue/2.3.4/vue.min.js"></script>
-  <script src="//public.zhfile.com/js/ray.js"></script>
+	<meta charset="utf-8">
+	<title>URL 定时请求</title>
+	<meta name="renderer" content="webkit">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/4.1.1/css/bootstrap.min.css">
+	<script src="//cdn.bootcss.com/vue/2.3.4/vue.min.js"></script>
+	<script src="//public.zhfile.com/js/ray.js"></script>
 </head>
 
 <body>
@@ -25,17 +25,32 @@
 							
 				<div class="form-group">
 					<label>任务链接</label>
-					<input type="text" class="form-control" placeholder="任务的 URL" required autofocus v-model="task" value="">
+					<input type="text" class="form-control" placeholder="任务的 URL" required autofocus v-model="node.url" value="">
 				</div>
-						
+
 				<div class="form-group">
-					<label>循环时间（1000 = 1秒）</label>
-					<input type="number" class="form-control" placeholder="任务的间隔时间" required v-model="time" value="">
+					<label>循环时间（秒）</label>
+					<input type="number" class="form-control" placeholder="任务的间隔时间" required v-model="node.rest" value="">
+				</div>
+
+				<div class="form-row">
+					<div class="form-group col-md-6">
+						<label for="inputEmail4">开始时间（时）</label>
+						<select id="inputState" class="form-control" v-model="node.begin">
+							<option v-for="n in 24" v-bind:selected="n == 1">{{n - 1}}</option>
+						</select>
+					</div>
+					<div class="form-group col-md-6">
+						<label for="inputPassword4">结束时间（时）</label>
+						<select id="inputState" class="form-control" v-model="node.finish">
+							<option v-for="n in 24" v-bind:selected="n == 24">{{n - 1}}</option>
+						</select>
+					</div>
 				</div>
 
 				<div class="form-row">
 					<div class="col">
-						<button class="btn btn-primary btn-block" type="button" v-on:click="append">保存任务</button>
+						<button class="btn btn-primary btn-block" type="button" v-on:click="append" v-bind:disabled="!node.url || !node.rest">新增任务</button>
 					</div>
 					<div class="col">
 						<div v-if="Object.keys( list ).length">
@@ -57,9 +72,13 @@
 		<div class="card mb-3" v-for="item in list">
 			<div class="card-body">
 							
-			<p><label>任务链接</label> {{item.task}} <a v-on:click="remove( item )" class="text-danger float-right">[DELETE]</a></p>
+			<p><label>任务链接</label> {{item.url}} <a v-on:click="remove( item )" class="text-danger float-right">[DELETE]</a></p>
 					
-			<p><label>循环间隔</label> <code>{{item.time / 1000}}</code> 秒，<label>已执行</label> <code>{{item.exec}}</code> 次 {{item.date ? '，最近执行：' + item.date : '' }}</p>
+			<p>
+				<label>运行时段</label> <code>{{item.begin}}-{{item.finish}}</code>，
+				<label>循环间隔</label> <code>{{item.rest}}</code> 秒，
+				<label>已执行</label> <code>{{item.exec}}</code> 次 {{item.last ? '，最近执行：' + item.last : '' }}
+			</p>
 
 			<p v-if="item.text" class="text-success">{{item.text}}</p>
 
@@ -77,68 +96,93 @@
 		el : '#app',
 		data : {
 			run  : false,
-			task : null,
+			node : { url : null, rest : null, begin : 0, finish : 23 },
 			time : null,
 			list : []
 		},
 		methods : {
 
+			//新增任务
 			append : function(){
 			
-				 if( !R.Validate.URL( this.task ) ){				
+				if( !R.Validate.URL( this.node.url ) ){
 					alert('任务链接必需为 URL');
 					
-				}else if( !R.Validate.Number( this.time ) ){				
+				}else if( !R.Validate.Number( this.node.rest ) ){
 					alert('循环时间必需为数字');
 					
-				}else{				
-					this.access( this.task, this.time );
-					this.task = this.time = null;					
+				}else if( !R.Validate.Number( this.node.begin ) ){
+					alert('循环时间必需为数字');
+					
+				}else if( !R.Validate.Number( this.node.finish ) ){
+					alert('循环时间必需为数字');
+					
+				}else{
+					this.access( this.node );
+					this.node.url = this.node.rest = null;
 				}
 				
 			},
 
-			access : function( task, time ){
+			//运行任务
+			access : function( node ){
+
+				var url = node.url;
+				var rest = node.rest;
+				var begin = node.begin;
+				var finish = node.finish;
 
 				var that = this;
 				var indx = that.list.length;
 
 				var fn = function(){
 
+					var hour = new Date().getHours();
+
+					//是否还在运行中
 					if( !that.run ) return;
 
-					R.jsonp( task + '?ajax=?', function( data ){
+					//是否在允许时段
+					if( hour < begin || hour > finish ) return;
+
+					//发起 JSONP 请求
+					R.jsonp( url + '?ajax=?', function( data ){
 						that.list[ indx ].text = JSON.stringify( data );
 						that.list[ indx ].exec = that.list[ indx ].exec + 1;
-						that.list[ indx ].date = new Date().toLocaleTimeString();
+						that.list[ indx ].last = new Date().toLocaleTimeString();
 					} );
 
 					that.list[ indx ].exec ++;
 
 				}
 
-				var id = window.setInterval( fn, time );
+				//循环执行
+				var id = window.setInterval( fn, rest * 1000 );
 
+				that.list.push( { 'indx' : indx, 'url' : url, 'rest' : rest, 'begin' : begin, 'finish' : finish, 'text' : null, 'last' : null, 'exec' : 0, 'id' : id } );
+
+				//立即执行
 				fn();
-
-				that.list.push( { 'indx' : indx, 'task' : task, 'time' : time, 'text' : null, 'date' : null, 'exec' : 0, 'id' : id } );
 
 			},
 
+			//移除任务
 			remove : function( node ){
-			
-				console.log( node );
 
+				//移除定时器
 				window.clearInterval( node['id'] );
 				
+				//移除任务
 				this.list.splice( node['indx'], 1 );
 
 			},
 
+			//开始任务
 			start : function(){
 				this.run = true;
 			},
 			
+			//停止任务
 			stop : function(){
 				this.run = false;
 			}
