@@ -136,6 +136,9 @@
 				var fn = function(){
 
 					var hour = new Date().getHours();
+					
+					//打印当前时间
+					console.log( hour + '<' + begin + '||' + hour + '>' + finish );
 
 					//是否还在运行中
 					if( !that.run ) return;
